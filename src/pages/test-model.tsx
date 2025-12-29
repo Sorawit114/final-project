@@ -22,23 +22,30 @@ export default function TestModel() {
       const res = await fetch("http://localhost:8000/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symbol, datetime }),
+        body: JSON.stringify({
+          symbol,
+          datetime, // ✅ ส่งตรง (Thai local time)
+        }),
       });
 
       const data = await res.json();
-      setResult(data);
+
+      if (!res.ok || data.error) {
+        setResult({ error: data.error || "Backend error" });
+      } else {
+        setResult(data);
+      }
     } catch (err) {
       setResult({ error: "Cannot connect to backend" });
     } finally {
-      setLoading(false);
+      setLoading(false); // 🔥 ป้องกัน loading ค้าง
     }
   };
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-4">Test AI Pattern Model</h1>
+      <div className="bg-gray-800 p-6 rounded-xl max-w-xl mx-auto space-y-4 mt-10">
 
-      <div className="bg-gray-800 p-6 rounded-xl max-w-xl mx-auto space-y-4">
         {/* Symbol */}
         <select
           className="w-full p-2 rounded bg-gray-700"
@@ -52,9 +59,7 @@ export default function TestModel() {
 
         {/* Datetime */}
         <div>
-          <label className="block mb-1">
-            เลือกวันและเวลา (เวลาไทย)
-          </label>
+          <label className="block mb-1">เลือกวันและเวลา (เวลาไทย)</label>
           <input
             type="datetime-local"
             className="w-full p-2 rounded bg-gray-700"
@@ -62,8 +67,7 @@ export default function TestModel() {
             onChange={(e) => setDatetime(e.target.value)}
           />
           <p className="text-sm text-gray-400 mt-1">
-            ระบบจะวิเคราะห์แท่ง 1 นาที ย้อนหลัง 5 แท่ง<br />
-            เวลาที่แนะนำ: ประมาณ 20:30 – 03:00 (ตลาด US เปิด)
+            วิเคราะห์แท่ง 1 นาที ย้อนหลัง 5 แท่ง<br />
           </p>
         </div>
 
@@ -79,21 +83,23 @@ export default function TestModel() {
         {/* Loading */}
         {loading && (
           <div className="text-center text-green-400">
-            Running model...
+            Running model (อาจใช้เวลา 5–10 วินาที)...
           </div>
         )}
 
         {/* Result */}
         {result && (
-          <div className="bg-gray-700 p-4 rounded whitespace-pre-wrap">
+          <div className="bg-gray-700 p-4 rounded">
             {result.error ? (
-              <span className="text-red-400">
-                ❌ {result.error}
-              </span>
+              <div className="text-red-400">❌ {result.error}</div>
             ) : (
               <>
                 <div>📈 Symbol: {result.symbol}</div>
                 <div>🧠 Pattern: {result.pattern_name}</div>
+                <div>
+                  🔍 Result:{" "}
+                  {result.is_pattern ? "✅ พบ Pattern" : "❌ ไม่พบ Pattern"}
+                </div>
                 <div>
                   🎯 Confidence: {(result.confidence * 100).toFixed(2)}%
                 </div>

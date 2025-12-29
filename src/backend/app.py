@@ -2,17 +2,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import tensorflow as tf
-import numpy as np
 import yfinance as yf
 from datetime import datetime
+from dateutil import parser
 import pytz
+import numpy as np
 
+# ---------- APP ----------
 app = FastAPI()
 
 # ---------- CORS ----------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,72 +27,112 @@ app.add_middleware(
 TH_TZ = pytz.timezone("Asia/Bangkok")
 US_TZ = pytz.timezone("US/Eastern")
 
-# ---------- LOAD MODEL ----------
+# ---------- MODEL ----------
 model = tf.keras.models.load_model(
     "model/my_stock_prediction_cnn_lstm_model.keras"
 )
 
+ALLOWED_SYMBOLS = ["AAPL", "TSLA", "NVDA", "TISCO"]
+
+# 🔑 IMPORTANT: ต้องตรงกับตอน train 100%
+PATTERN_CLASSES = [
+    "No Pattern",
+    "Hammer",
+    "Bullish Engulfing",
+    "Bearish Engulfing",
+    "Doji",
+    "Morning Star",
+    "Evening Star",
+    "Piercing Line",
+    "Dark Cloud Cover",
+]
+
+# optional: threshold ต่อ pattern
+PATTERN_THRESHOLDS = {
+    "Hammer": 0.65,
+    "Bullish Engulfing": 0.7,
+    "Bearish Engulfing": 0.7,
+    "Doji": 0.6,
+    "Morning Star": 0.7,
+    "Evening Star": 0.7,
+}
+
 # ---------- REQUEST ----------
 class Query(BaseModel):
     symbol: str
-    datetime: str  # เวลาไทย เช่น "2024-01-05T21:30"
+    datetime: str  # "2025-01-05T21:30"
 
 # ---------- HELPERS ----------
 def prepare_input(df):
     df = df[["Open", "High", "Low", "Close"]]
 
-    # normalize (ต้องเหมือนตอน train)
-    df = (df - df.mean()) / df.std()
-
     if len(df) < 5:
         return None
 
-    window = df.values[-5:]  # 5 แท่งล่าสุด
+    window = df.values[-5:]
+
+    # normalize per-window
+    mean = window.mean(axis=0)
+    std = window.std(axis=0) + 1e-8
+    window = (window - mean) / std
+
     return window.reshape(1, 5, 4)
+
+
+def is_market_open(us_time: datetime):
+    market_open = us_time.replace(hour=9, minute=30, second=0)
+    market_close = us_time.replace(hour=16, minute=0, second=0)
+    return market_open <= us_time <= market_close
+
 
 # ---------- API ----------
 @app.post("/predict")
 def predict(query: Query):
-    # 1️⃣ แปลงเวลาไทย → US
+
+    # 1️⃣ validate symbol
+    if query.symbol not in ALLOWED_SYMBOLS:
+        return {"error": "Invalid symbol"}
+
+    # 2️⃣ parse Thai datetime → US
     try:
-        th_time = TH_TZ.localize(datetime.fromisoformat(query.datetime))
-        us_time = th_time.astimezone(US_TZ).replace(tzinfo=None)
-    except:
+        naive_time = parser.parse(query.datetime)
+        th_time = TH_TZ.localize(naive_time)
+        us_time = th_time.astimezone(US_TZ)
+    except Exception:
         return {"error": "Invalid datetime format"}
 
-    # 2️⃣ กันเลือกเวลาอนาคต (US)
-    now_us = datetime.now(US_TZ).replace(tzinfo=None)
-    if us_time > now_us:
-        return {"error": "Selected time is in the future (US market time)"}
+    # 3️⃣ future check
+    if us_time > datetime.now(US_TZ):
+        return {"error": "Selected time is in the future (US time)"}
 
-    # 3️⃣ เช็กเวลาตลาด
-    market_open = us_time.replace(hour=9, minute=30)
-    market_close = us_time.replace(hour=16, minute=0)
+    # 4️⃣ market hours check
+    if not is_market_open(us_time):
+        return {"error": "Outside US market hours (09:30 PM – 04:00 AM)"}
 
-    if us_time < market_open or us_time > market_close:
-        return {
-            "error": "Selected time is outside US market hours (09:30–16:00 ET)"
-        }
-
-    # 4️⃣ โหลดข้อมูลหุ้นทั้งวัน (US)
-    start_day = us_time.replace(hour=0, minute=0, second=0)
-    end_day = us_time.replace(hour=23, minute=59, second=59)
+    # 5️⃣ download intraday data
+    start = us_time.replace(hour=0, minute=0, second=0)
+    end = us_time.replace(hour=23, minute=59, second=59)
 
     df = yf.download(
         query.symbol,
-        start=start_day,
-        end=end_day,
+        start=start,
+        end=end,
         interval="1m",
-        progress=False
+        progress=False,
     )
 
     if df.empty:
-        return {"error": "No data available for this day"}
+        return {"error": "No data for selected day"}
 
-    df.index = df.index.tz_localize(None)
+    # normalize timezone
+    if df.index.tz is not None:
+        df.index = df.index.tz_convert(US_TZ).tz_localize(None)
+    else:
+        df.index = df.index.tz_localize(None)
 
-    # 5️⃣ เอาแท่งก่อนเวลาที่เลือก
-    df = df[df.index <= us_time]
+    # 6️⃣ candles before selected time
+    us_time_naive = us_time.replace(tzinfo=None)
+    df = df[df.index <= us_time_naive]
 
     if len(df) < 5:
         return {"error": "Not enough candles before selected time"}
@@ -96,14 +141,27 @@ def predict(query: Query):
     if features is None:
         return {"error": "Invalid input window"}
 
-    # 6️⃣ Predict
-    prediction = model.predict(features, verbose=0)
-    confidence = float(prediction[0][0])
+    # 7️⃣ predict (MULTI-CLASS)
+    probs = model.predict(features, verbose=0)[0]  # shape (9,)
 
+    pattern_index = int(np.argmax(probs))
+    pattern_name = PATTERN_CLASSES[pattern_index]
+    confidence = float(probs[pattern_index])
+
+    threshold = PATTERN_THRESHOLDS.get(pattern_name, 0.6)
+    is_pattern = pattern_name != "No Pattern" and confidence >= threshold
+
+    # 8️⃣ response
     return {
         "symbol": query.symbol,
-        "pattern_name": "Custom Pattern",
+        "pattern_name": pattern_name,
+        "pattern_index": pattern_index,
+        "is_pattern": is_pattern,
         "confidence": round(confidence, 4),
         "thai_time": th_time.strftime("%Y-%m-%d %H:%M"),
-        "us_time": us_time.strftime("%Y-%m-%d %H:%M")
+        "us_time": us_time.strftime("%Y-%m-%d %H:%M"),
+        "all_probabilities": {
+            PATTERN_CLASSES[i]: round(float(probs[i]), 4)
+            for i in range(len(PATTERN_CLASSES))
+        },
     }
