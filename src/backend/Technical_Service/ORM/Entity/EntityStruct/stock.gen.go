@@ -6,7 +6,7 @@ package EntityStruct
 
 const TableNameStock = "Stock"
 
-// Stock mapped from table <stock>
+// Stock mapped from table <Stock>
 type Stock struct {
 	UserID         *int32  `gorm:"column:user_id" json:"userId"`
 	StockShortName *string `gorm:"column:stock_short_name" json:"stockShortName"`
