@@ -211,7 +211,7 @@ func main() {
 
 	// Configure generator
 	g := gen.NewGenerator(gen.Config{
-		OutPath:       "Technical_Service/Entity",
+		OutPath:       "Entity",
 		ModelPkgPath:  "Entity/EntityStruct",
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
 		FieldNullable: true,

@@ -36,5 +36,9 @@ func LoadConfig() *Config {
 		cfg.Port = "8080"
 	}
 
+	if cfg.DSN == "" {
+		cfg.DSN = "postgres://postgres:1234@localhost:5432/Project"
+	}
+
 	return cfg
 }
