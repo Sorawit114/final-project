@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import Link from "next/link";
 import TradingViewWidget from "../components/TradingViewWidget";
 import MiniChart from "../components/MiniChart";
 import { PlusCircleIcon } from "@heroicons/react/24/solid";
 import Layout from "../components/Layout";
+import { useToast } from "@/context/ToastContext";
 
 const symbols = [
   "AAPL",
@@ -19,17 +20,43 @@ const symbols = [
 
 export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState(symbols[0]);
-  const [showLogin, setShowLogin] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const handleAddStock = (symbol: string) => {
-    const stored = localStorage.getItem("myStocks");
-    const stocks = stored ? JSON.parse(stored) : [];
-    if (!stocks.find((s: any) => s.symbol === symbol)) {
-      const newStock = { symbol, quantity: 0, avgPrice: 0, currentPrice: 0 };
-      localStorage.setItem("myStocks", JSON.stringify([...stocks, newStock]));
-      alert(`${symbol} added to My Stock!`);
-    } else {
-      alert(`${symbol} is already in My Stock.`);
+  useEffect(() => {
+    // Check for logged in user
+    const storedUserId = localStorage.getItem("userId");
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
+  }, []);
+
+  const { toast } = useToast();
+
+  const handleAddStock = async (symbol: string) => {
+    if (!userId) {
+      toast("Please login to add stocks.", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/add-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: parseInt(userId),
+          stockName: symbol,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast(`${symbol} added to your watchlist!`, "success");
+      } else {
+        toast(`Failed to add ${symbol}: ${data.error}`, "error");
+      }
+    } catch (err) {
+      toast("Error connecting to server.", "error");
     }
   };
 
@@ -44,23 +71,31 @@ export default function Home() {
           Analyze your favorite stocks, check patterns, and track your portfolio
           easily.
         </p>
-        <div className="p-4 overflow-x-auto flex gap-4 justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-6xl">
           {symbols.map((sym) => (
             <div
               key={sym}
               onClick={() => setSelectedSymbol(sym)}
-              className="cursor-pointer relative"
+              className={`cursor-pointer relative p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group ${selectedSymbol === sym ? "ring-2 ring-purple-500 bg-white/10" : ""
+                }`}
             >
               <MiniChart symbol={sym} />
-              <div className="flex justify-between items-center mt-1">
-                <p className="text-center w-full">{sym}</p>
-                <button
-                  onClick={() => handleAddStock(sym)}
-                  className="bg-indigo-500 hover:bg-indigo-400 text-white p-1 rounded-full shadow-lg flex items-center justify-center"
-                  title="Add to My Stock"
-                >
-                  <PlusCircleIcon className="h-5 w-5" />
-                </button>
+              <div className="flex justify-between items-center mt-3 px-1">
+                <p className={`text-center font-bold transition-colors ${selectedSymbol === sym ? "text-purple-300" : "text-gray-300 group-hover:text-white"}`}>
+                  {sym}
+                </p>
+                {userId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddStock(sym);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 hover:shadow-indigo-500/50"
+                    title="Add to My Stock"
+                  >
+                    <PlusCircleIcon className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -68,48 +103,9 @@ export default function Home() {
       </div>
 
       {/* Advanced Chart */}
-      <div className="p-4">
+      <div className="p-4 max-w-7xl mx-auto h-[600px]">
         <TradingViewWidget symbol={selectedSymbol} />
       </div>
-
-      {showLogin && (
-        <>
-          {/* Backdrop blur */}
-          <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40"></div>
-
-          {/* Modal */}
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-gray-800 p-8 rounded-xl shadow-lg w-80">
-              <h3 className="text-xl font-bold mb-4 text-center">Login</h3>
-              <input
-                type="text"
-                placeholder="Username"
-                className="w-full p-2 mb-3 rounded-md bg-gray-700 text-white"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                className="w-full p-2 mb-4 rounded-md bg-gray-700 text-white"
-              />
-              <button className="w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded-md mb-2">
-                Login
-              </button>
-              <p className="text-sm text-gray-400 text-center">
-                Don't have an account?{" "}
-                <a href="/register" className="text-indigo-400 hover:underline">
-                  Register
-                </a>
-              </p>
-              <button
-                onClick={() => setShowLogin(false)}
-                className="absolute top-2 right-2 text-gray-400 hover:text-white font-bold text-lg"
-              >
-                &times;
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </Layout>
   );
 }

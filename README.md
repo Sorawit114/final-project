@@ -1,40 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Final Project
 
-## Getting Started
+This project consists of a **Next.js Frontend**, a **Go Backend (Authentication & User Data)**, and a **Python Service (Deep Learning Model for Stock Prediction)**.
 
-First, run the development server:
+## Prerequisites
+
+Ensure you have the following installed:
+- **Node.js** (v18 or later)
+- **Go** (v1.20 or later)
+- **Python** (v3.10 or later)
+- **PostgreSQL** (running on port 5432)
+
+---
+
+## 1. Database Setup (PostgreSQL)
+
+Ensure PostgreSQL is running and creates a database named `Project`.
+
+The Go Backend expects the following connection string by default:
+`postgres://postgres:1234@localhost:5432/Project`
+
+If your credentials differ, update the `.env` file or `Config/config.go` in the backend.
+
+---
+
+## 2. Backend Setup (Go)
+
+This service handles User Authentication (Login/Register) and Stock Portfolio management.
+
+### **Installation & Run**
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd src/backend
+# Install dependencies
+go mod tidy
+
+# Run the server
+go run main.go
+# OR if compiled:
+# ./server.exe
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Port:** `8080`
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+---
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## 3. Model Service Setup (Python)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+This service runs the CNN-LSTM model for stock pattern prediction.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### **Installation & Run**
 
-## Learn More
+```bash
+cd src/backend
+# Create virtual environment (optional but recommended)
+python -m venv venv
+# Activate venv
+# Windows:
+.\venv\Scripts\Activate.ps1
+# Mac/Linux:
+# source venv/bin/activate
 
-To learn more about Next.js, take a look at the following resources:
+# Install dependencies
+pip install -r requirements.txt
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+# Run the FastAPI server
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> **Port:** `8000`
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 4. Frontend Setup (Next.js)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+This is the user interface.
+
+### **Installation & Run**
+
+```bash
+# Root directory
+npm install
+
+# Run development server
+npm run dev
+```
+
+> **Port:** `3000`
+> Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Usage Guide
+
+1.  **Start Database:** Ensure Postgres is running.
+2.  **Start Go Backend:** Terminal 1 -> `go run main.go`
+3.  **Start Python Model:** Terminal 2 -> `uvicorn app:app --reload`
+4.  **Start Frontend:** Terminal 3 -> `npm run dev`
+5.  **Access:** Go to `localhost:3000`. Login/Register to add stocks to your portfolio.
