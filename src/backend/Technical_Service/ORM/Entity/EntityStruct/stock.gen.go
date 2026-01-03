@@ -4,7 +4,7 @@
 
 package EntityStruct
 
-const TableNameStock = "stock"
+const TableNameStock = "Stock"
 
 // Stock mapped from table <stock>
 type Stock struct {
