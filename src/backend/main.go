@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"project/Technical_Service/ORM/Entity/EntityStruct"
+	"project/Technical_Service/Scheduler"
 	model "project/model"
 
 	"github.com/gin-contrib/cors"
@@ -29,6 +32,34 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	// Start Scheduler
+	scheduler := Scheduler.NewSchedulerService()
+	scheduler.Start()
+
+	// Proxy /predict to Python Service (port 8000)
+	r.POST("/predict", func(c *gin.Context) {
+		// 1. Read Body
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+		// Restore body for further binding if needed (not needed here but good practice)
+		// c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		// 2. Forward to Python
+		pythonURL := "http://localhost:8000/predict"
+		resp, err := http.Post(pythonURL, "application/json", bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Prediction service unavailable"})
+			return
+		}
+		defer resp.Body.Close()
+
+		// 3. Return Response
+		c.DataFromReader(resp.StatusCode, resp.ContentLength, resp.Header.Get("Content-Type"), resp.Body, nil)
+	})
 
 	// Routes
 	r.POST("/register", func(c *gin.Context) {

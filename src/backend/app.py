@@ -7,6 +7,7 @@ from datetime import datetime
 from dateutil import parser
 import pytz
 import numpy as np
+import pandas as pd
 
 # ---------- APP ----------
 app = FastAPI()
@@ -123,6 +124,13 @@ def predict(query: Query):
 
     if df.empty:
         return {"error": "No data for selected day"}
+
+    # 🔧 FIX: Handle MultiIndex or Duplicate Columns from yfinance
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    
+    # Remove duplicate columns (keep first)
+    df = df.loc[:, ~df.columns.duplicated()]
 
     # normalize timezone
     if df.index.tz is not None:
