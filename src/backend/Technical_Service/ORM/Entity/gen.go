@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	Q     = new(Query)
-	Stock *stock
-	User  *user
+	Q      = new(Query)
+	Stock  *stock
+	User   *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
@@ -29,9 +29,9 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:    db,
-		Stock: newStock(db, opts...),
-		User:  newUser(db, opts...),
+		db:     db,
+		Stock:  newStock(db, opts...),
+		User:   newUser(db, opts...),
 	}
 }
 
@@ -46,7 +46,7 @@ func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:    db,
+		db:   db,
 		Stock: q.Stock.clone(db),
 		User:  q.User.clone(db),
 	}
@@ -62,21 +62,21 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:    db,
+		db:   db,
 		Stock: q.Stock.replaceDB(db),
 		User:  q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	Stock IStockDo
-	User  IUserDo
+	Stock  IStockDo
+	User   IUserDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		Stock: q.Stock.WithContext(ctx),
-		User:  q.User.WithContext(ctx),
+		Stock:  q.Stock.WithContext(ctx),
+		User:   q.User.WithContext(ctx),
 	}
 }
 

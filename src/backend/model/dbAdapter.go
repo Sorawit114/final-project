@@ -1,4 +1,4 @@
-package Model
+package model
 
 // this is technical service for database connection
 import (

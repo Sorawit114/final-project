@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"project/Model"
 	"project/Technical_Service/ORM/Entity/EntityStruct"
+	model "project/model"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,7 +15,7 @@ import (
 
 func main() {
 	// Initialize Database
-	adapter := new(Model.Adapter).GetAdapterIntance()
+	adapter := new(model.Adapter).GetAdapterIntance()
 	db := adapter.GetGormIntance()
 
 	// Initialize Router
@@ -35,7 +35,7 @@ func main() {
 		var input struct {
 			Username string `json:"username" binding:"required"`
 			Password string `json:"password" binding:"required"`
-			Email    string `json:"email"` // Optional, based on register UI
+			Email    string `json:"email" binding:"required"`
 		}
 
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -52,6 +52,7 @@ func main() {
 
 		passwordStr := string(hashedPassword)
 		usernameStr := input.Username
+		emailStr := input.Email
 		// Check if user exists
 		var existingUser EntityStruct.User
 		if result := db.Where("username = ?", input.Username).First(&existingUser); result.Error == nil {
@@ -61,8 +62,9 @@ func main() {
 
 		// Create user
 		newUser := EntityStruct.User{
-			Username: &usernameStr,
-			Password: &passwordStr,
+			Username: usernameStr,
+			Password: passwordStr,
+			Email:    emailStr,
 		}
 
 		// Generate random UserID (Workaround for missing auto-increment)
@@ -98,20 +100,20 @@ func main() {
 			return
 		}
 
-		if user.Password == nil {
+		if user.Password == "" {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user data"})
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(input.Password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}
 
 		// In a real app, generate JWT here. For now, just return success.
 		var usernameVal string
-		if user.Username != nil {
-			usernameVal = *user.Username
+		if user.Username != "" {
+			usernameVal = user.Username
 		}
 
 		c.JSON(http.StatusOK, gin.H{
@@ -135,7 +137,7 @@ func main() {
 
 		newStock := EntityStruct.Stock{
 			UserID:         &input.UserID,
-			StockShortName: &input.StockName,
+			StockShortName: input.StockName,
 			StockID:        int32(rand.Int31()), // Generate random ID
 		}
 

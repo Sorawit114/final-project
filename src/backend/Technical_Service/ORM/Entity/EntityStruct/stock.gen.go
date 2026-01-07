@@ -8,10 +8,10 @@ const TableNameStock = "Stock"
 
 // Stock mapped from table <Stock>
 type Stock struct {
-	UserID         *int32  `gorm:"column:user_id" json:"userId"`
-	StockShortName *string `gorm:"column:stock_short_name" json:"stockShortName"`
-	StockID        int32   `gorm:"column:stock_id;primaryKey;autoIncrement:true" json:"stockId" validate:""`
-	User           *User   `gorm:"foreignKey:user_id;references:user_id" json:"user"`
+	UserID         *int32 `gorm:"column:user_id" json:"userId"`
+	StockShortName string `gorm:"column:stock_short_name;not null" json:"stockShortName" validate:"required"`
+	StockID        int32  `gorm:"column:stock_id;primaryKey;autoIncrement:true" json:"stockId" validate:""`
+	UserUser       *User  `gorm:"foreignKey:user_id;references:user_id" json:"userUser"`
 }
 
 // TableName Stock's table name

@@ -9,8 +9,9 @@ const TableNameUser = "User"
 // User mapped from table <User>
 type User struct {
 	UserID   int32    `gorm:"column:user_id;primaryKey;autoIncrement:true" json:"userId" validate:""`
-	Username *string  `gorm:"column:username" json:"username"`
-	Password *string  `gorm:"column:password" json:"password"`
+	Username string   `gorm:"column:username;not null" json:"username" validate:"required"`
+	Password string   `gorm:"column:password;not null" json:"password" validate:"required"`
+	Email    string   `gorm:"column:email;not null" json:"email" validate:"required"`
 	Stock    []*Stock `gorm:"foreignKey:user_id;references:user_id" json:"stock"`
 }
 

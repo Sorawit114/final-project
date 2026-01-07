@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"project/Model"
+	"project/model"
 	"regexp"
 	"strings"
 	"unicode"
@@ -206,7 +206,7 @@ func buildValidateOpts(table string, colMap map[string]map[string]columnInfo, pk
 // ===================== MAIN =====================
 
 func main() {
-	var adapter *Model.Adapter
+	var adapter *model.Adapter
 	db := adapter.GetGormIntance()
 
 	// Configure generator

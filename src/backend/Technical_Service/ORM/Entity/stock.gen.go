@@ -31,10 +31,10 @@ func newStock(db *gorm.DB, opts ...gen.DOOption) stock {
 	_stock.UserID = field.NewInt32(tableName, "user_id")
 	_stock.StockShortName = field.NewString(tableName, "stock_short_name")
 	_stock.StockID = field.NewInt32(tableName, "stock_id")
-	_stock.User = stockBelongsToUser{
+	_stock.UserUser = stockBelongsToUserUser{
 		db: db.Session(&gorm.Session{}),
 
-		RelationField: field.NewRelation("User", "EntityStruct.User"),
+		RelationField: field.NewRelation("UserUser", "EntityStruct.User"),
 	}
 
 	_stock.fillFieldMap()
@@ -49,7 +49,7 @@ type stock struct {
 	UserID         field.Int32
 	StockShortName field.String
 	StockID        field.Int32
-	User           stockBelongsToUser
+	UserUser       stockBelongsToUserUser
 
 	fieldMap map[string]field.Expr
 }
@@ -94,24 +94,24 @@ func (s *stock) fillFieldMap() {
 
 func (s stock) clone(db *gorm.DB) stock {
 	s.stockDo.ReplaceConnPool(db.Statement.ConnPool)
-	s.User.db = db.Session(&gorm.Session{Initialized: true})
-	s.User.db.Statement.ConnPool = db.Statement.ConnPool
+	s.UserUser.db = db.Session(&gorm.Session{Initialized: true})
+	s.UserUser.db.Statement.ConnPool = db.Statement.ConnPool
 	return s
 }
 
 func (s stock) replaceDB(db *gorm.DB) stock {
 	s.stockDo.ReplaceDB(db)
-	s.User.db = db.Session(&gorm.Session{})
+	s.UserUser.db = db.Session(&gorm.Session{})
 	return s
 }
 
-type stockBelongsToUser struct {
+type stockBelongsToUserUser struct {
 	db *gorm.DB
 
 	field.RelationField
 }
 
-func (a stockBelongsToUser) Where(conds ...field.Expr) *stockBelongsToUser {
+func (a stockBelongsToUserUser) Where(conds ...field.Expr) *stockBelongsToUserUser {
 	if len(conds) == 0 {
 		return &a
 	}
@@ -124,32 +124,32 @@ func (a stockBelongsToUser) Where(conds ...field.Expr) *stockBelongsToUser {
 	return &a
 }
 
-func (a stockBelongsToUser) WithContext(ctx context.Context) *stockBelongsToUser {
+func (a stockBelongsToUserUser) WithContext(ctx context.Context) *stockBelongsToUserUser {
 	a.db = a.db.WithContext(ctx)
 	return &a
 }
 
-func (a stockBelongsToUser) Session(session *gorm.Session) *stockBelongsToUser {
+func (a stockBelongsToUserUser) Session(session *gorm.Session) *stockBelongsToUserUser {
 	a.db = a.db.Session(session)
 	return &a
 }
 
-func (a stockBelongsToUser) Model(m *EntityStruct.Stock) *stockBelongsToUserTx {
-	return &stockBelongsToUserTx{a.db.Model(m).Association(a.Name())}
+func (a stockBelongsToUserUser) Model(m *EntityStruct.Stock) *stockBelongsToUserUserTx {
+	return &stockBelongsToUserUserTx{a.db.Model(m).Association(a.Name())}
 }
 
-func (a stockBelongsToUser) Unscoped() *stockBelongsToUser {
+func (a stockBelongsToUserUser) Unscoped() *stockBelongsToUserUser {
 	a.db = a.db.Unscoped()
 	return &a
 }
 
-type stockBelongsToUserTx struct{ tx *gorm.Association }
+type stockBelongsToUserUserTx struct{ tx *gorm.Association }
 
-func (a stockBelongsToUserTx) Find() (result *EntityStruct.User, err error) {
+func (a stockBelongsToUserUserTx) Find() (result *EntityStruct.User, err error) {
 	return result, a.tx.Find(&result)
 }
 
-func (a stockBelongsToUserTx) Append(values ...*EntityStruct.User) (err error) {
+func (a stockBelongsToUserUserTx) Append(values ...*EntityStruct.User) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -157,7 +157,7 @@ func (a stockBelongsToUserTx) Append(values ...*EntityStruct.User) (err error) {
 	return a.tx.Append(targetValues...)
 }
 
-func (a stockBelongsToUserTx) Replace(values ...*EntityStruct.User) (err error) {
+func (a stockBelongsToUserUserTx) Replace(values ...*EntityStruct.User) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -165,7 +165,7 @@ func (a stockBelongsToUserTx) Replace(values ...*EntityStruct.User) (err error) 
 	return a.tx.Replace(targetValues...)
 }
 
-func (a stockBelongsToUserTx) Delete(values ...*EntityStruct.User) (err error) {
+func (a stockBelongsToUserUserTx) Delete(values ...*EntityStruct.User) (err error) {
 	targetValues := make([]interface{}, len(values))
 	for i, v := range values {
 		targetValues[i] = v
@@ -173,15 +173,15 @@ func (a stockBelongsToUserTx) Delete(values ...*EntityStruct.User) (err error) {
 	return a.tx.Delete(targetValues...)
 }
 
-func (a stockBelongsToUserTx) Clear() error {
+func (a stockBelongsToUserUserTx) Clear() error {
 	return a.tx.Clear()
 }
 
-func (a stockBelongsToUserTx) Count() int64 {
+func (a stockBelongsToUserUserTx) Count() int64 {
 	return a.tx.Count()
 }
 
-func (a stockBelongsToUserTx) Unscoped() *stockBelongsToUserTx {
+func (a stockBelongsToUserUserTx) Unscoped() *stockBelongsToUserUserTx {
 	a.tx = a.tx.Unscoped()
 	return &a
 }

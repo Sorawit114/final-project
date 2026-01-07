@@ -31,6 +31,7 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.UserID = field.NewInt32(tableName, "user_id")
 	_user.Username = field.NewString(tableName, "username")
 	_user.Password = field.NewString(tableName, "password")
+	_user.Email = field.NewString(tableName, "email")
 	_user.Stock = userHasManyStock{
 		db: db.Session(&gorm.Session{}),
 
@@ -49,6 +50,7 @@ type user struct {
 	UserID   field.Int32
 	Username field.String
 	Password field.String
+	Email    field.String
 	Stock    userHasManyStock
 
 	fieldMap map[string]field.Expr
@@ -69,6 +71,7 @@ func (u *user) updateTableName(table string) *user {
 	u.UserID = field.NewInt32(table, "user_id")
 	u.Username = field.NewString(table, "username")
 	u.Password = field.NewString(table, "password")
+	u.Email = field.NewString(table, "email")
 
 	u.fillFieldMap()
 
@@ -85,10 +88,11 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 4)
+	u.fieldMap = make(map[string]field.Expr, 5)
 	u.fieldMap["user_id"] = u.UserID
 	u.fieldMap["username"] = u.Username
 	u.fieldMap["password"] = u.Password
+	u.fieldMap["email"] = u.Email
 
 }
 
