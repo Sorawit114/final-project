@@ -33,29 +33,37 @@ model = tf.keras.models.load_model(
     "model/my_stock_prediction_cnn_lstm_model.keras"
 )
 
-ALLOWED_SYMBOLS = ["AAPL", "TSLA", "NVDA", "TISCO"]
+ALLOWED_SYMBOLS = [
+  "AAPL",
+  "TSLA",
+  "NVDA",
+  "MSFT",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "NFLX",
+]
 
 # 🔑 IMPORTANT: ต้องตรงกับตอน train 100%
 PATTERN_CLASSES = [
-    "No Pattern",
-    "Hammer",
-    "Bullish Engulfing",
-    "Bearish Engulfing",
-    "Doji",
-    "Morning Star",
-    "Evening Star",
-    "Piercing Line",
-    "Dark Cloud Cover",
+    'Doji', 
+    'Spinning Top', 
+    'Harami', 
+    'Engulfing',
+    'Hammer', 
+    'Three Outside Up/Down', 
+    'Three Inside Up/Down'
 ]
 
 # optional: threshold ต่อ pattern
 PATTERN_THRESHOLDS = {
+    "Doji": 0.60,
+    "Spinning Top": 0.60,
+    "Harami": 0.65,
+    "Engulfing": 0.70,
     "Hammer": 0.65,
-    "Bullish Engulfing": 0.7,
-    "Bearish Engulfing": 0.7,
-    "Doji": 0.6,
-    "Morning Star": 0.7,
-    "Evening Star": 0.7,
+    "Three Outside Up/Down": 0.75,
+    "Three Inside Up/Down": 0.75
 }
 
 # ---------- REQUEST ----------
